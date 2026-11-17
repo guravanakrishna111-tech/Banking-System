@@ -1,205 +1,71 @@
-# Deployment Guide - Online Banking Management System
+# Deploy with Render and Vercel
 
-This document outlines the three primary ways to deploy the **Online Banking Management System (OBMS)** to production:
+This project is an educational banking simulation. Deploy it with synthetic data only; it is not suitable for real banking, payments, or customer information.
 
-- **Method 1:** Cloud Platforms (Render / Railway for Backend + Vercel for Frontend) — *Recommended for academic evaluation, demonstrations, and portfolios.*
-- **Method 2:** Single VPS / Cloud Server (Ubuntu, AWS EC2, DigitalOcean) with Nginx & Gunicorn.
-- **Method 3:** 1-Command Containerized Deployment with Docker Compose.
+## What the deployment creates
 
----
+- A Django API and PostgreSQL database on Render, defined in `render.yaml`.
+- A React/Vite static site on Vercel, with SPA routing configured in `vercel.json`.
+- Production secrets and database credentials supplied through the hosting providers, not committed to source.
 
-## ☁️ Method 1: Cloud Deployment (Render / Railway + Vercel)
+The Blueprint uses Render's free plans for a low-friction demo. Free services can sleep when idle, and free PostgreSQL has a limited lifetime. For a persistent public demo, upgrade the database to a paid plan and configure backups before relying on its data.
 
-This is the easiest and most modern deployment approach.
+## 1. Push the project to GitHub
 
-### Step 1: Push Code to GitHub
-Ensure your repository is pushed to GitHub:
-```bash
-git init
-git add .
-git commit -m "Initial commit - Online Banking System"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/banking-system.git
-git push -u origin main
+Create a GitHub repository and push this project. Keep it private if it contains any real personal data. Do not commit `.env` files, credentials, or a populated local database.
+
+## 2. Deploy the backend and database on Render
+
+1. In Render, choose **New → Blueprint** and connect the GitHub repository containing `render.yaml`.
+2. Review and apply the `banking-api` web service and `banking-db` PostgreSQL database.
+3. Wait for the service to finish its first deploy. The start command applies Django migrations before starting Gunicorn.
+4. Copy the backend URL, for example `https://banking-api.onrender.com`.
+
+Render generates `SECRET_KEY` and supplies `DATABASE_URL` from the PostgreSQL service. `DEBUG` is disabled. The settings add Render's assigned hostname to Django's allowed hosts automatically.
+
+## 3. Deploy the frontend on Vercel
+
+1. In Vercel, choose **Add New → Project** and import the same GitHub repository.
+2. Set **Root Directory** to `frontend`.
+3. Use the Vite defaults: build command `npm run build`, output directory `dist`.
+4. Add the production environment variable:
+
+   | Name | Value |
+   | --- | --- |
+   | `VITE_API_URL` | `https://YOUR-RENDER-SERVICE.onrender.com/api` |
+
+5. Deploy and copy the Vercel production domain, for example `https://your-app.vercel.app`.
+
+## 4. Allow the Vercel site to call the API
+
+In Render, open the `banking-api` service's environment settings and set `CORS_ALLOWED_ORIGINS` to the exact Vercel origin, including `https://` and no trailing slash. Example:
+
+```text
+https://your-app.vercel.app
 ```
 
----
+For a custom frontend domain, include both domains separated by a comma:
 
-### Step 2: Deploy Backend to Render (or Railway)
-1. Go to [render.com](https://render.com) and create an account.
-2. Click **New +** $\rightarrow$ **Web Service**.
-3. Connect your GitHub repository.
-4. Configure the Web Service:
-   - **Name:** `banking-backend`
-   - **Root Directory:** `backend`
-   - **Runtime:** `Python 3`
-   - **Build Command:** `pip install -r requirements.txt && python manage.py migrate && python seed_data.py && python manage.py collectstatic --noinput`
-   - **Start Command:** `gunicorn banking_core.wsgi:application`
-5. Under **Environment Variables**, add:
-   - `SECRET_KEY`: *(Generate a random string)*
-   - `USE_MYSQL`: `False` *(or configure a managed MySQL / PostgreSQL database)*
-6. Click **Deploy Web Service**.
-7. Copy your backend live URL (e.g. `https://banking-backend.onrender.com`).
+```text
+https://your-app.vercel.app,https://bank.example.com
+```
 
----
+Save the environment change and redeploy the Render service. If you use Vercel preview deployments, add their specific origins only when needed; avoid wildcard CORS origins.
 
-### Step 3: Deploy Frontend to Vercel (or Netlify)
-1. Go to [vercel.com](https://vercel.com) and sign in with GitHub.
-2. Click **Add New...** $\rightarrow$ **Project**.
-3. Select your repository.
-4. Configure the Project:
-   - **Framework Preset:** `Vite`
-   - **Root Directory:** `frontend`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
-5. In **Environment Variables**, add:
-   - `VITE_API_URL`: `https://banking-backend.onrender.com/api` *(Your Render backend URL with `/api`)*
-6. Click **Deploy**.
-7. Vercel will provide your live frontend URL (e.g. `https://banking-system.vercel.app`).
+## 5. Create an administrator
 
----
-
-## 🐳 Method 2: Docker Compose Deployment (1-Command)
-
-If you have Docker and Docker Compose installed on your server (local or cloud VM):
+After the first successful Render deploy, open the service's Shell and run:
 
 ```bash
-# In the project root directory:
-docker compose up -d --build
+python manage.py createsuperuser
 ```
 
-This command automatically:
-1. Starts a **MySQL 8.0** container initialized with `database_schema.sql`.
-2. Builds the **Django backend** container, runs migrations, seeds initial data, and starts Gunicorn on port `8000`.
-3. Compiles the **React frontend** and serves it with **Nginx** on port `80`.
+Use a unique password. Do not run `backend/seed_data.py` on a public deployment: it creates publicly documented demo accounts and resets their passwords to known values.
 
-Open your browser at:
-`http://localhost` (or `http://YOUR_SERVER_IP`)
+## Configuration notes
 
----
-
-## 🖥️ Method 3: Ubuntu VPS Deployment (AWS EC2 / DigitalOcean)
-
-Deploying onto a standard Ubuntu 22.04 / 24.04 LTS Linux server.
-
-### 1. Initial Server Setup
-```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3-pip python3-venv nginx git mysql-server
-```
-
-### 2. Configure MySQL Database
-```bash
-sudo mysql -u root
-```
-Inside MySQL prompt:
-```sql
-CREATE DATABASE online_banking_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'bank_user'@'localhost' IDENTIFIED BY 'StrongPassword123!';
-GRANT ALL PRIVILEGES ON online_banking_db.* TO 'bank_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-### 3. Clone Repository & Setup Backend
-```bash
-cd /var/www
-sudo git clone https://github.com/YOUR_USERNAME/banking-system.git
-cd banking-system
-
-# Virtual environment
-python3 -m venv venv
-source venv/bin/activate
-pip install -r backend/requirements.txt
-
-# Migrate and seed
-cd backend
-export USE_MYSQL=True
-export DB_NAME=online_banking_db
-export DB_USER=bank_user
-export DB_PASSWORD='StrongPassword123!'
-python manage.py migrate
-python seed_data.py
-python manage.py collectstatic --noinput
-```
-
-### 4. Create Gunicorn Systemd Service
-Create `/etc/systemd/system/banking.service`:
-```ini
-[Unit]
-Description=Gunicorn daemon for Banking System
-After=network.target
-
-[Service]
-User=ubuntu
-Group=www-data
-WorkingDirectory=/var/www/banking-system/backend
-ExecStart=/var/www/banking-system/venv/bin/gunicorn --access-logfile - --workers 3 --bind 127.0.0.1:8000 banking_core.wsgi:application
-Environment="USE_MYSQL=True"
-Environment="DB_NAME=online_banking_db"
-Environment="DB_USER=bank_user"
-Environment="DB_PASSWORD=StrongPassword123!"
-
-[Install]
-WantedBy=multi-user.target
-```
-Start and enable the service:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl start banking
-sudo systemctl enable banking
-```
-
-### 5. Build and Deploy React Frontend
-```bash
-cd /var/www/banking-system/frontend
-# Install Node.js (via NodeSource)
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-npm install
-npm run build
-```
-
-### 6. Configure Nginx Reverse Proxy
-Create `/etc/nginx/sites-available/banking`:
-```nginx
-server {
-    listen 80;
-    server_name your_domain.com www.your_domain.com;
-
-    # Serve built React SPA
-    location / {
-        root /var/www/banking-system/frontend/dist;
-        index index.html;
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Proxy REST API requests to Gunicorn
-    location /api/ {
-        proxy_pass http://127.0.0.1:8000/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Serve Django static files
-    location /static/ {
-        alias /var/www/banking-system/backend/staticfiles/;
-    }
-}
-```
-Enable the site and restart Nginx:
-```bash
-sudo ln -s /etc/nginx/sites-available/banking /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-### 7. Enable Free HTTPS (SSL) with Let's Encrypt
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your_domain.com
-```
-
-Your system is now deployed with full HTTPS encryption!
+- Local development still uses SQLite by default. On Render, `DATABASE_URL` selects PostgreSQL.
+- `DEBUG` defaults to `True` only for local development. Render sets it to `False`.
+- `CORS_ALLOWED_ORIGINS` defaults to the local Vite origin during development. Set it to the exact deployed frontend origin in Render.
+- `ALLOWED_HOSTS` can be set explicitly if you use a custom backend domain; Render's assigned hostname is added automatically.
+- Vercel rebuilds the frontend when `VITE_API_URL` changes. Render redeploys the backend when its environment settings change.

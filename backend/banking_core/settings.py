@@ -3,11 +3,19 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dg^*4wnu1tnh=-wq5%sg+0rncvd$gmmkjzyxwv*h^!uv%tv7--')
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError('SECRET_KEY must be set when DEBUG is disabled.')
+    SECRET_KEY = 'django-insecure-local-development-only-key'
 
-DEBUG = True
-
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get(
+    'ALLOWED_HOSTS', 'localhost,127.0.0.1'
+).split(',') if host.strip()]
+render_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -59,11 +67,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'banking_core.wsgi.application'
 
-# Database Configuration
-# Supports MySQL with PyMySQL adapter or defaults to SQLite for immediate local testing
+# Database Configuration. DATABASE_URL is used by Render; local development
+# continues to use SQLite unless MySQL is explicitly enabled.
 USE_MYSQL = os.environ.get('USE_MYSQL', 'False').lower() in ('true', '1', 'yes')
 
-if USE_MYSQL:
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    import dj_database_url
+
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
+    }
+elif USE_MYSQL:
     import pymysql
     pymysql.install_as_MySQLdb()
 
@@ -113,6 +132,12 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -131,5 +156,15 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [origin.strip().rstrip('/') for origin in os.environ.get(
+    'CORS_ALLOWED_ORIGINS', 'http://localhost:5173'
+).split(',') if origin.strip()]
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'

@@ -6,7 +6,7 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: online_banking_db
-      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD before starting Docker Compose}
     ports:
       - "3306:3306"
     volumes:
@@ -26,10 +26,10 @@ services:
       - USE_MYSQL=True
       - DB_NAME=online_banking_db
       - DB_USER=root
-      - DB_PASSWORD=root_password_123
+      - DB_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD before starting Docker Compose}
       - DB_HOST=db
       - DB_PORT=3306
-      - SECRET_KEY=production-secret-key-obms-2026
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY before starting Docker Compose}
     ports:
       - "8000:8000"
     depends_on:
