@@ -139,7 +139,7 @@ export default function UserDashboard({ setCurrentTab, onOpenTransfer, onOpenDep
         {/* Interactive Virtual Card */}
         <div className="lg:col-span-1 bg-gradient-to-br from-[#0B192C] via-[#1E3E62] to-[#112A46] text-white p-6 rounded-3xl shadow-xl flex flex-col justify-between min-h-[220px] relative border border-slate-700/60">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold tracking-widest uppercase text-blue-300">Apex Premium</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-blue-300">Online Banking</span>
             <span className="text-xs font-mono font-semibold text-slate-300">
               {currentAccount?.account_type || 'SAVINGS'}
             </span>

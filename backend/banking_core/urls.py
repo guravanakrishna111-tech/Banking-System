@@ -7,7 +7,7 @@ from django.http import JsonResponse
 def health_check(request):
     return JsonResponse({
         "status": "healthy",
-        "service": "Apex Banking Core API",
+        "service": "Online Banking System API",
         "version": "1.0.0",
         "endpoints": {
             "admin": "/django-admin/",

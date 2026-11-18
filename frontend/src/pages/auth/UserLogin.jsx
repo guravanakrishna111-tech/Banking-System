@@ -57,7 +57,7 @@ export default function UserLogin({ onSwitchToRegister, onSwitchToForgot, onSwit
           </div>
         </div>
         <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          Apex Online Banking
+          Online Banking System
         </h2>
         <p className="mt-1 text-center text-xs text-blue-200">
           Secure Customer Portal • Academic Banking Simulation

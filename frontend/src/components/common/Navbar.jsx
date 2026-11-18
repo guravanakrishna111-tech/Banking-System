@@ -33,7 +33,7 @@ export default function Navbar({ onToggleSidebar, onOpenNotifications }) {
             </div>
             <div>
               <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-                Apex Bank
+                Online Banking System
               </span>
               <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] uppercase font-semibold tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full">
                 Simulated Portal
