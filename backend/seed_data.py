@@ -11,6 +11,11 @@ from accounts.models import User, BankAccount, Beneficiary, Notification, AuditL
 from transactions.models import Transaction
 
 def seed():
+    print("Checking database seeding status...")
+    if User.objects.filter(username='alice_smith').exists():
+        print("Database already seeded with demo accounts. Skipping.")
+        return
+
     print("Seeding database with initial users, bank accounts, and transactions...")
 
     # 1. Create Admin
