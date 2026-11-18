@@ -52,14 +52,18 @@ export default function Register({ onSwitchToLogin }) {
     try {
       await register(formData);
     } catch (err) {
-      const errors = err.response?.data;
-      let errorMsg = 'Registration failed. Please check form details.';
-      if (typeof errors === 'object') {
-        const firstKey = Object.keys(errors)[0];
-        const val = errors[firstKey];
-        errorMsg = Array.isArray(val) ? `${firstKey}: ${val[0]}` : String(val);
+      if (!err.response) {
+        setError('Cannot connect to backend server. Please verify backend status and CORS configuration.');
+      } else {
+        const errors = err.response?.data;
+        let errorMsg = 'Registration failed. Please check form details.';
+        if (typeof errors === 'object' && errors !== null) {
+          const firstKey = Object.keys(errors)[0];
+          const val = errors[firstKey];
+          errorMsg = Array.isArray(val) ? `${firstKey}: ${val[0]}` : String(val);
+        }
+        setError(errorMsg);
       }
-      setError(errorMsg);
     } finally {
       setLoading(false);
     }

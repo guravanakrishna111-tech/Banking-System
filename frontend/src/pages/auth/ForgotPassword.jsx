@@ -28,7 +28,11 @@ export default function ForgotPassword({ onSwitchToLogin }) {
       });
       setSuccessData(res.data);
     } catch (err) {
-      setError(err.response?.data?.error || 'No matching user account found.');
+      if (!err.response) {
+        setError('Cannot connect to backend server. Please verify backend status and CORS configuration.');
+      } else {
+        setError(err.response?.data?.error || 'No matching user account found.');
+      }
     } finally {
       setLoading(false);
     }

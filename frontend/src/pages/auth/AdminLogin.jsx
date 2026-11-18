@@ -26,10 +26,14 @@ export default function AdminLogin({ onSwitchToUserLogin }) {
     try {
       await adminLogin(usernameOrEmail.trim(), password);
     } catch (err) {
-      const msg = err.response?.data?.non_field_errors?.[0] || 
-                  err.response?.data?.detail || 
-                  'Administrator authentication failed. Please verify credentials.';
-      setError(msg);
+      if (!err.response) {
+        setError('Cannot connect to backend server. Please verify backend status and CORS configuration.');
+      } else {
+        const msg = err.response?.data?.non_field_errors?.[0] || 
+                    err.response?.data?.detail || 
+                    'Administrator authentication failed. Please verify credentials.';
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

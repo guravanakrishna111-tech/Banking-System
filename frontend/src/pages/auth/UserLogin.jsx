@@ -26,10 +26,14 @@ export default function UserLogin({ onSwitchToRegister, onSwitchToForgot, onSwit
     try {
       await login(usernameOrEmail.trim(), password);
     } catch (err) {
-      const msg = err.response?.data?.non_field_errors?.[0] || 
-                  err.response?.data?.detail || 
-                  'Invalid credentials. Please verify your username and password.';
-      setError(msg);
+      if (!err.response) {
+        setError(`Cannot connect to backend server. Please verify backend status and CORS configuration.`);
+      } else {
+        const msg = err.response?.data?.non_field_errors?.[0] || 
+                    err.response?.data?.detail || 
+                    'Invalid credentials. Please verify your username and password.';
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
